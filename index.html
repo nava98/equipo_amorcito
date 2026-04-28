@@ -274,7 +274,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ⚙️  CONFIGURACIÓN — EDITA ESTO
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzSjvQbfb24w0bhJSVwTDhNoDfaS4ACwG7s_ZUhTmUg4owbVRaTGifJMG1luUR7varHyg/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyD4jAgPclY-x3JdIvJA-O7fGZGCbusIPmgiG772eVBuu3Bb81O3T7M_EqtmCEYdLNQaA/exec';
 // Ejemplo: 'https://script.google.com/macros/s/AKfycb.../exec'
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -972,19 +972,21 @@ function doGet(e) {
 
     // ── getAll ────────────────────────────────────────────────────────
     if (action === 'getAll') {
-      const movRows = movies.getDataRange().getValues();
+      // getDisplayValues() devuelve todo como texto tal cual se ve en la celda,
+      // evitando que Sheets convierta 7.5 a serial de fecha o distorsione las fechas.
+      const movRows = movies.getDataRange().getDisplayValues();
       const movList = movRows.slice(1).filter(r => r[0]).map(r => ({
-        id:            String(r[0]),
+        id:            r[0],
         title:         r[1] || '',
         type:          r[2] || 'Película',
-        silviaScore:   (r[3] !== '' && r[3] !== null && r[3] !== undefined) ? Number(r[3]) : null,
-        javierScore:   (r[4] !== '' && r[4] !== null && r[4] !== undefined) ? Number(r[4]) : null,
+        silviaScore:   r[3] !== '' ? Number(r[3].replace(',','.')) : null,
+        javierScore:   r[4] !== '' ? Number(r[4].replace(',','.')) : null,
         silviaOpinion: r[5] || '',
         javierOpinion: r[6] || '',
         date:          r[7] || '',
       }));
 
-      const restRows = restaurants.getDataRange().getValues();
+      const restRows = restaurants.getDataRange().getDisplayValues();
       const restObj  = {};
       restRows.slice(1).filter(r => r[0]).forEach(r => {
         const key = r[0];
@@ -992,8 +994,8 @@ function doGet(e) {
         restObj[key].push({
           name:        r[1] || '',
           cuisine:     r[2] || '',
-          silviaScore: r[3] !== '' && r[3] !== null ? Number(r[3]) : null,
-          javierScore: r[4] !== '' && r[4] !== null ? Number(r[4]) : null,
+          silviaScore: r[3] !== '' ? Number(r[3].replace(',','.')) : null,
+          javierScore: r[4] !== '' ? Number(r[4].replace(',','.')) : null,
           opinion:     r[5] || '',
           date:        r[6] || '',
         });
