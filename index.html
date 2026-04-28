@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipo Amorcito ♡</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+  :root {
+    --cream: #fdf6ee;
+    --warm: #f5e6d3;
+    --blush: #e8c9b0;
+    --rose: #c97b5a;
+    --deep: #7a3f2a;
+    --text: #2d1f18;
+    --muted: #8a6a5a;
+    --gold: #c9a96e;
+    --white: #fff9f5;
+    --ocean: #c8dff0;
+    --shadow: rgba(122,63,42,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Lato',sans-serif; background:var(--cream); color:var(--text); min-height:100vh; }
+
+  /* ─── LOGIN ─── */
+  #login-screen {
+    position:fixed; inset:0;
+    background:linear-gradient(135deg,#2d1f18 0%,#7a3f2a 50%,#c97b5a 100%);
+    display:flex; align-items:center; justify-content:center;
+    z-index:1000; flex-direction:column; gap:2rem;
+  }
+  #login-screen h1 { font-family:'Playfair Display',serif; color:var(--warm); font-size:clamp(2rem,6vw,3.5rem); text-align:center; letter-spacing:.05em; }
+  #login-screen h1 span { color:var(--gold); font-style:italic; }
+  .login-box { background:rgba(255,249,245,.1); border:1px solid rgba(201,169,110,.4); border-radius:16px; padding:2.5rem 3rem; display:flex; flex-direction:column; gap:1.2rem; align-items:center; min-width:300px; backdrop-filter:blur(10px); }
+  .login-box input { width:100%; padding:.8rem 1.2rem; background:rgba(255,249,245,.15); border:1px solid rgba(201,169,110,.5); border-radius:8px; color:var(--warm); font-family:'Lato',sans-serif; font-size:1.1rem; text-align:center; letter-spacing:.1em; outline:none; transition:border .3s; }
+  .login-box input::placeholder { color:rgba(245,230,211,.5); }
+  .login-box input:focus { border-color:var(--gold); }
+  .login-box button { padding:.7rem 2.5rem; background:var(--gold); border:none; border-radius:8px; color:var(--deep); font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; cursor:pointer; transition:all .2s; }
+  .login-box button:hover { background:var(--blush); transform:translateY(-1px); }
+  .login-error { color:#ffaaaa; font-size:.85rem; display:none; }
+
+  /* ─── APP ─── */
+  #app { display:none; min-height:100vh; }
+  header { background:var(--deep); padding:1.2rem 2rem; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 20px var(--shadow); position:sticky; top:0; z-index:100; }
+  header h1 { font-family:'Playfair Display',serif; color:var(--warm); font-size:1.6rem; letter-spacing:.03em; }
+  header h1 span { color:var(--gold); font-style:italic; }
+  nav { display:flex; gap:.5rem; }
+  nav button { padding:.5rem 1.3rem; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--blush); font-family:'Lato',sans-serif; font-size:.9rem; cursor:pointer; transition:all .2s; }
+  nav button:hover { border-color:var(--gold); color:var(--gold); }
+  nav button.active { background:var(--rose); color:var(--white); border-color:var(--rose); }
+
+  section { display:none; padding:2.5rem; max-width:1400px; margin:0 auto; }
+  section.active { display:block; }
+
+  /* ─── STATUS BAR ─── */
+  .sync-bar { display:flex; align-items:center; gap:.8rem; margin-bottom:1.5rem; font-size:.8rem; color:var(--muted); }
+  .sync-dot { width:8px; height:8px; border-radius:50%; background:var(--blush); }
+  .sync-dot.ok { background:#6bba6b; }
+  .sync-dot.err { background:#e06060; }
+  .sync-dot.loading { background:var(--gold); animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ─── PELÍCULAS ─── */
+  .section-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+  .section-header h2 { font-family:'Playfair Display',serif; font-size:2.2rem; color:var(--deep); }
+  .section-header h2 small { display:block; font-size:.9rem; color:var(--muted); font-family:'Lato',sans-serif; font-weight:300; font-style:normal; }
+  .add-card { background:var(--white); border:1px solid var(--blush); border-radius:16px; padding:2rem; margin-bottom:2.5rem; box-shadow:0 4px 20px var(--shadow); }
+  .add-card h3 { font-family:'Playfair Display',serif; color:var(--rose); font-size:1.2rem; margin-bottom:1.2rem; }
+  .form-group { display:flex; flex-direction:column; gap:.4rem; }
+  .form-group label { font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .form-group input,.form-group select,.form-group textarea { padding:.6rem .9rem; border:1px solid var(--blush); border-radius:8px; background:var(--cream); color:var(--text); font-family:'Lato',sans-serif; font-size:.95rem; outline:none; transition:border .2s; }
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus { border-color:var(--rose); }
+  .form-group textarea { resize:vertical; min-height:60px; }
+  .movie-form-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .movie-opinion-grid { display:grid; grid-template-columns:1fr 1fr auto; gap:1rem; align-items:flex-end; }
+  .btn-add { padding:.7rem 2rem; background:var(--rose); border:none; border-radius:8px; color:white; font-family:'Playfair Display',serif; font-size:.95rem; cursor:pointer; transition:all .2s; white-space:nowrap; height:fit-content; }
+  .btn-add:hover { background:var(--deep); transform:translateY(-1px); }
+  .btn-add:disabled { background:var(--blush); cursor:not-allowed; transform:none; }
+  .search-bar { display:flex; gap:.8rem; align-items:center; margin-bottom:1.5rem; }
+  .search-bar input { flex:1; padding:.6rem 1rem; border:1px solid var(--blush); border-radius:8px; background:var(--white); font-family:'Lato',sans-serif; font-size:.95rem; outline:none; }
+  .search-bar input:focus { border-color:var(--rose); }
+  .sort-select { padding:.6rem 1rem; border:1px solid var(--blush); border-radius:8px; background:var(--white); font-family:'Lato',sans-serif; color:var(--text); cursor:pointer; outline:none; }
+  .stats-bar { display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:2rem; }
+  .stat-pill { background:var(--white); border:1px solid var(--blush); border-radius:30px; padding:.5rem 1.2rem; display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--muted); box-shadow:0 2px 8px var(--shadow); }
+  .stat-pill strong { color:var(--rose); font-size:1rem; }
+  .movies-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; }
+  .movie-card { background:var(--white); border:1px solid var(--blush); border-radius:16px; padding:1.5rem; box-shadow:0 4px 16px var(--shadow); transition:transform .2s,box-shadow .2s; position:relative; }
+  .movie-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px var(--shadow); }
+  .movie-title { font-family:'Playfair Display',serif; font-size:1.15rem; color:var(--deep); margin-bottom:.4rem; padding-right:4rem; }
+  .movie-meta { font-size:.8rem; color:var(--muted); margin-bottom:1rem; }
+  .ratings-row { display:flex; gap:1rem; margin-bottom:.8rem; }
+  .rating-badge { display:flex; flex-direction:column; align-items:center; gap:.15rem; }
+  .rating-name { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .rating-score { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; color:var(--rose); }
+  .rating-score.na { color:var(--blush); font-size:1rem; }
+  .stars { display:flex; gap:2px; }
+  .star { width:12px; height:12px; background:var(--blush); clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+  .star.filled { background:var(--gold); }
+  .star.half { background:linear-gradient(90deg,var(--gold) 50%,var(--blush) 50%); }
+  .opinion-block { margin-top:.6rem; }
+  .opinion-label { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .opinion-text { font-size:.88rem; color:var(--text); line-height:1.5; margin-top:.2rem; font-style:italic; }
+  .delete-btn { position:absolute; top:1rem; right:1rem; background:none; border:none; cursor:pointer; color:var(--blush); font-size:1.1rem; transition:color .2s; padding:2px; }
+  .delete-btn:hover { color:var(--rose); }
+  .avg-badge { position:absolute; top:1rem; right:2.8rem; background:var(--deep); color:var(--gold); font-family:'Playfair Display',serif; font-size:.85rem; padding:.2rem .5rem; border-radius:6px; }
+  .series-tag { display:inline-block; background:var(--blush); color:var(--deep); font-size:.7rem; padding:.1rem .5rem; border-radius:20px; margin-left:.4rem; vertical-align:middle; }
+  .empty-msg { text-align:center; padding:4rem 2rem; color:var(--muted); font-style:italic; font-size:1.1rem; }
+
+  /* ─── MAP SECTION ─── */
+  .map-layout { display:grid; grid-template-columns:1fr 400px; gap:2rem; align-items:start; }
+  .map-box { background:var(--white); border:1px solid var(--blush); border-radius:16px; padding:1.2rem; box-shadow:0 4px 20px var(--shadow); position:sticky; top:90px; }
+  .map-box-header { display:flex; align-items:center; gap:.8rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .map-box-header h3 { font-family:'Playfair Display',serif; color:var(--deep); font-size:1rem; flex:1; }
+  .back-btn { background:none; border:1px solid var(--blush); border-radius:6px; padding:.3rem .8rem; cursor:pointer; color:var(--muted); font-size:.8rem; transition:all .2s; }
+  .back-btn:hover { border-color:var(--rose); color:var(--rose); }
+
+  /* D3 map styles */
+  #world-svg, #spain-svg { width:100%; display:block; }
+  #world-svg { border-radius:10px; background:var(--ocean); }
+  #spain-svg { border-radius:10px; background:var(--ocean); }
+
+  .world-country { fill:var(--blush); stroke:var(--white); stroke-width:.4; cursor:default; transition:fill .2s; }
+  .world-country.clickable { cursor:pointer; }
+  .world-country.clickable:hover { fill:var(--rose); }
+  .world-country.has-restaurants { fill:var(--gold); cursor:pointer; }
+  .world-country.has-restaurants:hover { fill:var(--rose); }
+  .world-country.spain-country { fill:var(--rose); cursor:pointer; }
+  .world-country.spain-country:hover { fill:var(--deep); }
+
+  .spain-province { fill:var(--warm); stroke:var(--white); stroke-width:.6; cursor:pointer; transition:fill .2s; }
+  .spain-province:hover { fill:var(--rose); }
+  .spain-province.selected { fill:var(--rose); }
+  .spain-province.has-data { fill:var(--gold); }
+  .spain-province.has-data:hover { fill:var(--rose); }
+
+  /* Zoom controls */
+  .zoom-controls { display:flex; gap:.4rem; margin-top:.6rem; justify-content:flex-end; }
+  .zoom-btn { background:var(--cream); border:1px solid var(--blush); border-radius:6px; padding:.3rem .7rem; cursor:pointer; color:var(--deep); font-size:.9rem; transition:all .2s; }
+  .zoom-btn:hover { background:var(--blush); }
+
+  /* Tooltip */
+  #map-tooltip { position:fixed; background:var(--deep); color:var(--warm); padding:.4rem .9rem; border-radius:8px; font-size:.82rem; pointer-events:none; display:none; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,.3); white-space:nowrap; }
+
+  /* Restaurants panel */
+  .restaurants-panel { min-height:300px; }
+  .panel-placeholder { text-align:center; padding:3rem 1rem; color:var(--muted); font-style:italic; }
+  .panel-placeholder .icon { font-size:2.5rem; margin-bottom:.8rem; }
+  .province-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; flex-wrap:wrap; gap:.5rem; }
+  .province-panel-header h3 { font-family:'Playfair Display',serif; color:var(--deep); font-size:1.4rem; }
+  .add-rest-form { background:var(--white); border:1px solid var(--blush); border-radius:12px; padding:1.2rem; margin-bottom:1.5rem; box-shadow:0 2px 10px var(--shadow); }
+  .add-rest-form h4 { font-family:'Playfair Display',serif; color:var(--rose); margin-bottom:.8rem; font-size:1rem; }
+  .rest-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-bottom:.7rem; }
+  .restaurant-card { background:var(--white); border:1px solid var(--blush); border-radius:12px; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 10px var(--shadow); position:relative; }
+  .restaurant-name { font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--deep); margin-bottom:.3rem; padding-right:2rem; }
+  .restaurant-type { font-size:.78rem; color:var(--muted); margin-bottom:.6rem; }
+  .rest-ratings { display:flex; gap:1.5rem; margin-bottom:.6rem; }
+  .rest-opinion { font-size:.85rem; color:var(--text); font-style:italic; line-height:1.5; }
+
+  /* Loading spinner */
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--blush); border-top-color:var(--rose); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:.4rem; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  @media(max-width:960px) { .map-layout{grid-template-columns:1fr;} .map-box{position:static;} }
+  @media(max-width:640px) { section{padding:1rem;} .movie-form-grid{grid-template-columns:1fr 1fr;} .movie-opinion-grid{grid-template-columns:1fr;} .movies-grid{grid-template-columns:1fr;} nav button span{display:none;} }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen">
+  <h1>Equipo <span>Amorcito</span> ♡</h1>
+  <div class="login-box">
+    <p style="color:var(--blush);font-size:.9rem;">Introduce la contraseña</p>
+    <input type="password" id="pwd-input" placeholder="••••••••" autocomplete="off">
+    <button onclick="checkLogin()">Entrar ♡</button>
+    <span class="login-error" id="login-error">Contraseña incorrecta 💔</span>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <header>
+    <h1>Equipo <span>Amorcito</span> ♡</h1>
+    <nav>
+      <button class="active" onclick="showSection('peliculas',this)">🎬 <span>Películas</span></button>
+      <button onclick="showSection('restaurantes',this)">🗺️ <span>Restaurantes</span></button>
+    </nav>
+  </header>
+
+  <!-- ══ PELÍCULAS ══ -->
+  <section id="peliculas" class="active">
+    <div class="sync-bar">
+      <div class="sync-dot loading" id="sync-dot-m"></div>
+      <span id="sync-label-m">Conectando con Google Sheets…</span>
+    </div>
+    <div class="section-header">
+      <h2>Películas &amp; Series <small>Nuestra colección de pantalla compartida</small></h2>
+    </div>
+    <div class="stats-bar" id="movie-stats"></div>
+    <div class="add-card">
+      <h3>+ Añadir película o serie</h3>
+      <div class="movie-form-grid">
+        <div class="form-group"><label>Título</label><input type="text" id="m-title" placeholder="Nombre de la peli…"></div>
+        <div class="form-group"><label>Tipo</label><select id="m-type"><option>Película</option><option>Serie</option></select></div>
+        <div class="form-group"><label>Nota Silvia (0-10)</label><input type="number" id="m-s-score" placeholder="—" min="0" max="10" step="0.5"></div>
+        <div class="form-group"><label>Nota Javier (0-10)</label><input type="number" id="m-j-score" placeholder="—" min="0" max="10" step="0.5"></div>
+      </div>
+      <div class="movie-opinion-grid">
+        <div class="form-group"><label>Opinión Silvia</label><textarea id="m-s-opinion" placeholder="¿Qué te pareció?"></textarea></div>
+        <div class="form-group"><label>Opinión Javier</label><textarea id="m-j-opinion" placeholder="¿Qué te pareció?"></textarea></div>
+        <button class="btn-add" id="btn-add-movie" onclick="addMovie()">Añadir</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="movie-search" placeholder="Buscar…" oninput="renderMovies()">
+      <select class="sort-select" id="movie-sort" onchange="renderMovies()">
+        <option value="date">Más reciente</option>
+        <option value="alpha">A-Z</option>
+        <option value="avg-desc">Mejor valorada</option>
+        <option value="avg-asc">Peor valorada</option>
+      </select>
+    </div>
+    <div class="movies-grid" id="movies-grid"></div>
+  </section>
+
+  <!-- ══ RESTAURANTES ══ -->
+  <section id="restaurantes">
+    <div class="sync-bar">
+      <div class="sync-dot loading" id="sync-dot-r"></div>
+      <span id="sync-label-r">Conectando con Google Sheets…</span>
+    </div>
+    <div class="section-header">
+      <h2>Restaurantes <small>Nuestros rincones favoritos por el mundo</small></h2>
+    </div>
+    <div class="map-layout">
+      <div>
+        <div class="map-box">
+          <div class="map-box-header">
+            <h3 id="map-title">🌍 Mapa Mundial — clic en un país para ver restaurantes</h3>
+            <button class="back-btn" id="back-to-world" onclick="showWorldView()" style="display:none">← Mundo</button>
+          </div>
+          <div id="world-map-wrap"><svg id="world-svg" viewBox="0 0 960 500"></svg></div>
+          <div id="spain-map-wrap" style="display:none"><svg id="spain-svg" viewBox="0 0 800 600"></svg></div>
+          <div class="zoom-controls">
+            <button class="zoom-btn" onclick="mapZoomIn()">＋</button>
+            <button class="zoom-btn" onclick="mapZoomOut()">－</button>
+            <button class="zoom-btn" onclick="mapReset()">⌖</button>
+          </div>
+        </div>
+      </div>
+      <div class="restaurants-panel" id="restaurants-panel">
+        <div class="panel-placeholder"><div class="icon">🗺️</div>Haz clic en un país o provincia para ver y añadir restaurantes</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="map-tooltip"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     GOOGLE APPS SCRIPT — INSTRUCCIONES DE CONFIGURACIÓN
+     ═══════════════════════════════════════════════════════
+  1. Ve a https://script.google.com → Nuevo proyecto
+  2. Pega el código del archivo "apps-script.js" (adjunto abajo en comentario)
+  3. Despliega → Nueva implementación → Aplicación web
+     - Ejecutar como: Yo
+     - Quién tiene acceso: Cualquier usuario
+  4. Copia la URL de implementación y pégala en SHEETS_URL abajo
+═══════════════════════════════════════════════════════ -->
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚙️  CONFIGURACIÓN — EDITA ESTO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzSjvQbfb24w0bhJSVwTDhNoDfaS4ACwG7s_ZUhTmUg4owbVRaTGifJMG1luUR7varHyg/exec';
+// Ejemplo: 'https://script.google.com/macros/s/AKfycb.../exec'
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const PASSWORD = 'cariñito';
+
+// ── Datos locales (fallback si no hay Sheets configurado) ──
+const INITIAL_MOVIES = [
+  {id:'1',title:'Cuando Harry conoció a Sally',type:'Película',silviaScore:4,javierScore:3,silviaOpinion:'4: sobrevalorada. En sí la historia no está mal, pero un poco pesada',javierOpinion:'3: aburridisima',date:'2020-01-01'},
+  {id:'2',title:'Hijos de los hombres',type:'Película',silviaScore:7,javierScore:8,silviaOpinion:'7: muy bien hecha pero con un final suuuper flojo',javierOpinion:'8: sin haber ocurrido nunca da la sensación de que relata algo de forma increíblemente realista',date:'2020-01-02'},
+  {id:'3',title:'Tarde de perros',type:'Película',silviaScore:7.5,javierScore:9,silviaOpinion:'7,5: está chula y la trama te engancha durante toda la peli, pero un poco larga',javierOpinion:'9: equilibrio perfecto de cómico y trágico',date:'2020-01-03'},
+  {id:'4',title:'Anatomía de una caída',type:'Película',silviaScore:3.5,javierScore:3,silviaOpinion:'3,5: el juicio me gustó como buena fanática, al menos te hace debatir',javierOpinion:'3: toston increíble',date:'2020-01-04'},
+  {id:'5',title:'El gran Gatsby',type:'Película',silviaScore:7.5,javierScore:7,silviaOpinion:'7,5: historia de amor bonita, pero acaba mal',javierOpinion:'7: una historia de amor muy bonita y con mucha estética',date:'2020-01-05'},
+  {id:'6',title:'Master and Commander',type:'Película',silviaScore:7,javierScore:9,silviaOpinion:'7: está muy bien hecha, pero las películas de este tipo no son mis favoritas',javierOpinion:'9: da la sensación de que todos los detalles de la vida en un barco están muy trabajados',date:'2020-01-06'},
+  {id:'7',title:'BlacKkKlansman',type:'Película',silviaScore:7.5,javierScore:8,silviaOpinion:'7,5: está chula y es divertida, tiene su punto',javierOpinion:'8: divertida y trata sobre algo que personalmente me interesa',date:'2020-01-07'},
+  {id:'8',title:'Atrápame si puedes',type:'Película',silviaScore:8,javierScore:8,silviaOpinion:'8: bastante chula',javierOpinion:'8: divertida. Consigue mantenerte en vilo toda la peli',date:'2020-01-08'},
+  {id:'9',title:'Napoleón Dynamite',type:'Película',silviaScore:5,javierScore:7,silviaOpinion:'5: es graciosa pero... rarísima xd',javierOpinion:'7: tiene momentos bastante graciosos',date:'2020-01-09'},
+  {id:'10',title:'Culpa nuestra',type:'Película',silviaScore:3,javierScore:2,silviaOpinion:'3: es una puta mierda jajajajja',javierOpinion:'2: historia de amor malísima',date:'2020-01-10'},
+  {id:'11',title:'La historia de Ed Gein',type:'Serie',silviaScore:7,javierScore:7,silviaOpinion:'7: cuesta un poco pillarla pero al final acaba cerrando el círculo',javierOpinion:'7: no está mal, sobretodo cómo lo enlaza con la historia de los comienzos del cine de terror',date:'2020-01-11'},
+  {id:'12',title:'Algunos hombres buenos',type:'Película',silviaScore:9,javierScore:9,silviaOpinion:'9: un juicio militar contra el abuso de poder, muy buena trama',javierOpinion:'9: te mantiene en vilo y capta muy bien la proeza de la lucha del abogado',date:'2020-01-12'},
+  {id:'13',title:'Inferno',type:'Película',silviaScore:7.5,javierScore:7,silviaOpinion:'7,5: el giro en el que luego todo es mentira es un puntazo',javierOpinion:'7: está chula. Sobretodo cómo muestra la parte histórica',date:'2020-01-13'},
+  {id:'14',title:'El indomable Will Hunting',type:'Película',silviaScore:9,javierScore:9,silviaOpinion:'9: una película super guay',javierOpinion:'9: realmente bonita',date:'2020-01-14'},
+  {id:'15',title:'Shutter Island',type:'Película',silviaScore:9.5,javierScore:9.5,silviaOpinion:'9,5: el plot twist es impresionante y para nada te lo esperas',javierOpinion:'9,5: de mis pelis favoritas. El plot twist del siglo',date:'2020-01-15'},
+  {id:'16',title:'Otra Ronda',type:'Película',silviaScore:3.5,javierScore:5,silviaOpinion:'3,5: es un mojón, no le encontré el sentido en ningún momento',javierOpinion:'5: no se muy bien que pensar',date:'2020-01-16'},
+  {id:'17',title:'La máscara del zorro',type:'Película',silviaScore:8,javierScore:8.5,silviaOpinion:'8: una típica muy buena',javierOpinion:'8,5: peli de aventuras muy buena. Es bonita, es divertida y acaba bien',date:'2020-01-17'},
+  {id:'18',title:'Death Proof',type:'Película',silviaScore:3,javierScore:2.5,silviaOpinion:'3: otro mojón, una película super rara y muchas veces sin sentido',javierOpinion:'2,5: tremenda basura',date:'2020-01-18'},
+  {id:'19',title:'Todo a la vez en todas partes',type:'Película',silviaScore:7.5,javierScore:8,silviaOpinion:'7,5: bastante chula, aunque a veces se pasaba de fantástica, y me quedé dormida :)',javierOpinion:'8: muy nueva, muy interesante. Peli que te deja pensando',date:'2020-01-19'},
+  {id:'20',title:'Parásitos',type:'Película',silviaScore:8,javierScore:8.5,silviaOpinion:'8: una película en la que no te esperas lo que va a pasar',javierOpinion:'8,5: genera una sensación indescriptible',date:'2020-01-20'},
+  {id:'21',title:'El barón Munchausen',type:'Película',silviaScore:4,javierScore:8,silviaOpinion:'4: rarísima, larguísima y surrealista, no me gustó',javierOpinion:'8: la estética es increíble para ser del 62',date:'2020-01-21'},
+  {id:'22',title:'Ostrov - La isla',type:'Película',silviaScore:null,javierScore:6,silviaOpinion:'-: me dormí :) (Estaba en ruso...)',javierOpinion:'6: me gusta cómo muestra la espiritualidad',date:'2020-01-22'},
+  {id:'23',title:'El guardaespaldas',type:'Película',silviaScore:7.5,javierScore:null,silviaOpinion:'7,5: una película mítica que hay que ver y con temazos, pero ella me caía FATAL',javierOpinion:'',date:'2020-01-23'},
+  {id:'24',title:'American History X',type:'Película',silviaScore:7.5,javierScore:null,silviaOpinion:'7,5: la temática y la trama son muy interesantes',javierOpinion:'',date:'2020-01-24'},
+  {id:'25',title:'Justicia para todos',type:'Película',silviaScore:6.5,javierScore:null,silviaOpinion:'6,5: una película un poco rara, pero en la que no te esperas lo que va a pasar',javierOpinion:'',date:'2020-01-25'},
+];
+
+// ━━━━ STATE ━━━━
+let movies = [];
+let restaurants = {}; // { countryOrProvinceKey: [{name,cuisine,silviaScore,javierScore,opinion,date}] }
+let sheetsReady = false;
+let selectedCountry = null; // {key, name, isSpain}
+let worldZoom, spainZoom;
+let worldProjection, spainPath;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GOOGLE SHEETS API
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// JSONP call — único método que funciona cross-origin con Apps Script sin servidor
+function sheetsRequest(action, payload={}) {
+  if (SHEETS_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const cbName = '_gs_cb_' + Date.now();
+    const params = new URLSearchParams({
+      action,
+      data: JSON.stringify(payload),
+      callback: cbName,
+    });
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup(); resolve(null);
+    }, 15000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); resolve(null); };
+    script.src = SHEETS_URL + '?' + params.toString();
+    document.head.appendChild(script);
+  });
+}
+
+function normalizeScore(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  // Reject NaN and suspiciously large numbers (Sheets date serials etc.)
+  if (isNaN(n) || n > 10 || n < 0) return null;
+  return n;
+}
+
+function normalizeMovie(m) {
+  return {
+    id:            String(m.id || Date.now()),
+    title:         String(m.title || ''),
+    type:          String(m.type || 'Película'),
+    silviaScore:   normalizeScore(m.silviaScore),
+    javierScore:   normalizeScore(m.javierScore),
+    silviaOpinion: String(m.silviaOpinion || ''),
+    javierOpinion: String(m.javierOpinion || ''),
+    date:          String(m.date || ''),
+  };
+}
+
+async function loadFromSheets() {
+  setSyncStatus('m','loading','Cargando películas…');
+  setSyncStatus('r','loading','Cargando restaurantes…');
+
+  if (SHEETS_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') {
+    // Offline mode — use initial data + localStorage
+    movies = loadLocal('movies') || [...INITIAL_MOVIES];
+    restaurants = loadLocal('restaurants') || {};
+    setSyncStatus('m','warn','Modo local (sin Google Sheets configurado)');
+    setSyncStatus('r','warn','Modo local (sin Google Sheets configurado)');
+    renderMovies();
+    return;
+  }
+
+  const data = await sheetsRequest('getAll');
+  if (!data) {
+    movies = loadLocal('movies') || [...INITIAL_MOVIES];
+    restaurants = loadLocal('restaurants') || {};
+    setSyncStatus('m','err','Sin conexión — usando datos locales');
+    setSyncStatus('r','err','Sin conexión — usando datos locales');
+  } else {
+    movies = (data.movies || []).map(normalizeMovie);
+    restaurants = data.restaurants || {};
+    sheetsReady = true;
+    setSyncStatus('m','ok','Sincronizado con Google Sheets ✓');
+    setSyncStatus('r','ok','Sincronizado con Google Sheets ✓');
+  }
+  renderMovies();
+  if (selectedCountry) renderRestaurantPanel(selectedCountry.key, selectedCountry.name);
+  refreshMapColors();
+}
+
+async function saveMovieToSheets(movie) {
+  const btn = document.getElementById('btn-add-movie');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Guardando…';
+  const res = await sheetsRequest('addMovie', movie);
+  btn.disabled = false; btn.textContent = 'Añadir';
+  if (!res) { saveLocal('movies', movies); return; }
+  if (res.id) { movie.id = res.id; }
+}
+
+async function deleteMovieFromSheets(id) {
+  const res = await sheetsRequest('deleteMovie', {id});
+  if (!res) saveLocal('movies', movies);
+}
+
+async function saveRestaurantToSheets(key, restaurant) {
+  const res = await sheetsRequest('addRestaurant', {key, restaurant});
+  if (!res) saveLocal('restaurants', restaurants);
+  return res;
+}
+
+async function deleteRestaurantFromSheets(key, idx) {
+  const res = await sheetsRequest('deleteRestaurant', {key, idx});
+  if (!res) saveLocal('restaurants', restaurants);
+}
+
+// ━━━━ LOCAL STORAGE FALLBACK ━━━━
+function loadLocal(k) { try { const v=localStorage.getItem('ea_'+k); return v?JSON.parse(v):null; } catch{return null;} }
+function saveLocal(k,v) { try { localStorage.setItem('ea_'+k,JSON.stringify(v)); } catch{} }
+
+function setSyncStatus(which, state, msg) {
+  const dot = document.getElementById('sync-dot-'+which);
+  const lbl = document.getElementById('sync-label-'+which);
+  dot.className = 'sync-dot ' + (state==='ok'?'ok':state==='err'?'err':state==='warn'?'':' loading');
+  lbl.textContent = msg;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOGIN
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.getElementById('pwd-input').addEventListener('keydown', e => { if(e.key==='Enter') checkLogin(); });
+function checkLogin() {
+  if (document.getElementById('pwd-input').value === PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+
+function showSection(id, btn) {
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function initApp() {
+  initWorldMap();
+  await loadFromSheets();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MOVIES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function addMovie() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) { alert('Escribe el título'); return; }
+  const movie = {
+    id: String(Date.now()),
+    title,
+    type: document.getElementById('m-type').value,
+    silviaScore: document.getElementById('m-s-score').value !== '' ? parseFloat(document.getElementById('m-s-score').value) : null,
+    javierScore: document.getElementById('m-j-score').value !== '' ? parseFloat(document.getElementById('m-j-score').value) : null,
+    silviaOpinion: document.getElementById('m-s-opinion').value.trim(),
+    javierOpinion: document.getElementById('m-j-opinion').value.trim(),
+    date: new Date().toISOString().slice(0,10)
+  };
+  movies.unshift(movie);
+  renderMovies();
+  await saveMovieToSheets(movie);
+  ['m-title','m-s-score','m-j-score','m-s-opinion','m-j-opinion'].forEach(id=>document.getElementById(id).value='');
+}
+
+async function deleteMovie(id) {
+  if (!confirm('¿Eliminar esta película?')) return;
+  movies = movies.filter(m=>m.id!==id);
+  renderMovies();
+  await deleteMovieFromSheets(id);
+}
+
+function getAvg(m) {
+  const v=[m.silviaScore,m.javierScore]
+    .filter(x=>x!==null&&x!==undefined&&x!=='')
+    .map(Number)
+    .filter(x=>!isNaN(x));
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+}
+
+function renderStars(score) {
+  if (score===null||score===undefined||score==='') return '';
+  const n = Math.min(10, Math.max(0, Number(score)));
+  if (isNaN(n)) return '';
+  const s = n / 10 * 5;
+  const full  = Math.max(0, Math.floor(s));
+  const half  = (s - full) >= 0.4 ? 1 : 0;
+  const empty = Math.max(0, 5 - full - half);
+  return '<div class="stars">'
+    + '<div class="star filled"></div>'.repeat(full)
+    + (half ? '<div class="star half"></div>' : '')
+    + '<div class="star"></div>'.repeat(empty)
+    + '</div>';
+}
+
+function renderMovies() {
+  const q = document.getElementById('movie-search').value.toLowerCase();
+  const sort = document.getElementById('movie-sort').value;
+  let list = movies.filter(m=>m.title.toLowerCase().includes(q));
+  if (sort==='alpha') list.sort((a,b)=>a.title.localeCompare(b.title));
+  else if (sort==='avg-desc') list.sort((a,b)=>(getAvg(b)||0)-(getAvg(a)||0));
+  else if (sort==='avg-asc') list.sort((a,b)=>(getAvg(a)||0)-(getAvg(b)||0));
+  else list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || String(b.id).localeCompare(String(a.id)));
+
+  const allS=[...movies.flatMap(m=>[m.silviaScore,m.javierScore])].filter(v=>v!==null&&v!==undefined&&v!=='').map(Number).filter(v=>!isNaN(v));
+  const avg=allS.length?(allS.reduce((a,b)=>a+b,0)/allS.length).toFixed(1):'—';
+  const best=movies.reduce((b,m)=>{const a=getAvg(m);return(a&&(!getAvg(b)||a>getAvg(b)))?m:b},movies[0]||{title:''});
+  document.getElementById('movie-stats').innerHTML=`
+    <div class="stat-pill">🎬 <strong>${movies.length}</strong> vistas</div>
+    <div class="stat-pill">📺 <strong>${movies.filter(m=>m.type==='Serie').length}</strong> series</div>
+    <div class="stat-pill">⭐ Media <strong>${avg}</strong>/10</div>
+    ${best.title?`<div class="stat-pill">🏆 <strong>${best.title.length>22?best.title.slice(0,22)+'…':best.title}</strong></div>`:''}`;
+
+  const grid=document.getElementById('movies-grid');
+  if (!list.length) { grid.innerHTML='<div class="empty-msg">No hay películas todavía ♡</div>'; return; }
+  grid.innerHTML=list.map(m=>{
+    const avg=getAvg(m);
+    return `<div class="movie-card">
+      ${avg!==null&&!isNaN(avg)?`<div class="avg-badge">${avg.toFixed(1)}</div>`:''}
+      <button class="delete-btn" onclick="deleteMovie('${m.id}')" title="Eliminar">✕</button>
+      <div class="movie-title">${m.title}${m.type==='Serie'?'<span class="series-tag">Serie</span>':''}</div>
+      <div class="movie-meta">${m.date||''}</div>
+      <div class="ratings-row">
+        <div class="rating-badge"><span class="rating-name">Silvia</span><span class="rating-score ${m.silviaScore===null?'na':''}">${m.silviaScore!==null&&m.silviaScore!==undefined&&m.silviaScore!==''?Number(m.silviaScore):'—'}</span>${renderStars(m.silviaScore)}</div>
+        <div class="rating-badge"><span class="rating-name">Javier</span><span class="rating-score ${m.javierScore===null?'na':''}">${m.javierScore!==null&&m.javierScore!==undefined&&m.javierScore!==''?Number(m.javierScore):'—'}</span>${renderStars(m.javierScore)}</div>
+      </div>
+      ${m.silviaOpinion?`<div class="opinion-block"><div class="opinion-label">Silvia</div><div class="opinion-text">${m.silviaOpinion}</div></div>`:''}
+      ${m.javierOpinion?`<div class="opinion-block"><div class="opinion-label">Javier</div><div class="opinion-text">${m.javierOpinion}</div></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WORLD MAP — D3 + TopoJSON
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SPAIN_ISO = '724';
+const tooltip = document.getElementById('map-tooltip');
+
+function showTooltip(e, text) {
+  tooltip.style.display = 'block';
+  tooltip.style.left = (e.clientX+14)+'px';
+  tooltip.style.top = (e.clientY-32)+'px';
+  tooltip.textContent = text;
+}
+function hideTooltip() { tooltip.style.display='none'; }
+
+let worldSvgEl, worldG;
+
+function initWorldMap() {
+  const width=960, height=500;
+  worldProjection = d3.geoNaturalEarth1()
+    .scale(153)
+    .translate([width/2, height/2]);
+  const path = d3.geoPath().projection(worldProjection);
+
+  const svg = d3.select('#world-svg')
+    .attr('viewBox',`0 0 ${width} ${height}`);
+
+  // Ocean
+  svg.append('rect').attr('width',width).attr('height',height).attr('fill','#c8dff0').attr('rx',10);
+
+  worldG = svg.append('g');
+  worldSvgEl = svg;
+
+  // Zoom
+  worldZoom = d3.zoom()
+    .scaleExtent([0.8,12])
+    .on('zoom', (event) => { worldG.attr('transform', event.transform); });
+  svg.call(worldZoom);
+
+  // Load world topo
+  fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+    .then(r=>r.json())
+    .then(world => {
+      const countries = topojson.feature(world, world.objects.countries);
+      const countryNames = {};
+      // ISO numeric codes to names (subset of most visited countries)
+      const nameMap = {
+        '004':'Afganistán','008':'Albania','012':'Argelia','024':'Angola','032':'Argentina',
+        '036':'Australia','040':'Austria','050':'Bangladés','056':'Bélgica','064':'Bután',
+        '068':'Bolivia','076':'Brasil','100':'Bulgaria','104':'Myanmar','116':'Camboya',
+        '120':'Camerún','124':'Canadá','144':'Sri Lanka','152':'Chile','156':'China',
+        '170':'Colombia','188':'Costa Rica','191':'Croacia','192':'Cuba','196':'Chipre',
+        '203':'República Checa','208':'Dinamarca','218':'Ecuador','818':'Egipto','222':'El Salvador',
+        '231':'Etiopía','238':'Islas Malvinas','246':'Finlandia','250':'Francia','266':'Gabón',
+        '276':'Alemania','288':'Ghana','300':'Grecia','320':'Guatemala','332':'Haití',
+        '340':'Honduras','348':'Hungría','356':'India','360':'Indonesia','364':'Irán',
+        '368':'Irak','372':'Irlanda','376':'Israel','380':'Italia','388':'Jamaica',
+        '392':'Japón','400':'Jordania','398':'Kazajistán','404':'Kenia','408':'Corea del Norte',
+        '410':'Corea del Sur','414':'Kuwait','418':'Laos','422':'Líbano','434':'Libia',
+        '440':'Lituania','484':'México','504':'Marruecos','508':'Mozambique','524':'Nepal',
+        '528':'Países Bajos','554':'Nueva Zelanda','558':'Nicaragua','566':'Nigeria',
+        '578':'Noruega','586':'Pakistán','591':'Panamá','598':'Papúa Nueva Guinea',
+        '600':'Paraguay','604':'Perú','608':'Filipinas','616':'Polonia','620':'Portugal',
+        '630':'Puerto Rico','642':'Rumanía','643':'Rusia','682':'Arabia Saudita',
+        '686':'Senegal','703':'Eslovaquia','706':'Somalia','710':'Sudáfrica','724':'España',
+        '729':'Sudán','752':'Suecia','756':'Suiza','760':'Siria','764':'Tailandia',
+        '788':'Túnez','792':'Turquía','800':'Uganda','804':'Ucrania','784':'Emiratos Árabes Unidos',
+        '826':'Reino Unido','840':'Estados Unidos','858':'Uruguay','860':'Uzbekistán',
+        '862':'Venezuela','704':'Vietnam','887':'Yemen','894':'Zambia','716':'Zimbabue',
+        '012':'Argelia','450':'Madagascar','466':'Malí','478':'Mauritania','496':'Mongolia',
+        '262':'Yibuti','678':'Santo Tomé y Príncipe','148':'Chad','180':'Rep. Dem. del Congo',
+        '178':'Congo','140':'Rep. Centroafricana','268':'Georgia','051':'Armenia',
+        '031':'Azerbaiyán','112':'Bielorrusia','070':'Bosnia y Herzegovina','807':'Macedonia',
+        '499':'Montenegro','688':'Serbia','008':'Albania','191':'Croacia','705':'Eslovenia',
+        '752':'Suecia','233':'Estonia','428':'Letonia',
+      };
+
+      worldG.selectAll('.world-country')
+        .data(countries.features)
+        .join('path')
+        .attr('class', d => {
+          const iso = String(d.id).padStart(3,'0');
+          const hasR = restaurants[iso] && restaurants[iso].length>0;
+          const isSpain = iso===SPAIN_ISO;
+          return 'world-country' + (isSpain?' spain-country':hasR?' has-restaurants':' clickable');
+        })
+        .attr('d', path)
+        .attr('data-iso', d=>String(d.id).padStart(3,'0'))
+        .attr('data-name', d=>nameMap[String(d.id).padStart(3,'0')]||'País')
+        .on('mousemove', function(event,d) {
+          const iso=String(d.id).padStart(3,'0');
+          const name=nameMap[iso]||'País';
+          const count=(restaurants[iso]||[]).length;
+          const isSpain=iso===SPAIN_ISO;
+          showTooltip(event, isSpain ? 'España 🇪🇸 — clic para ver provincias' : name+(count?` (${count} restaurante${count>1?'s':''})`:''));
+        })
+        .on('mouseleave', hideTooltip)
+        .on('click', function(event,d) {
+          hideTooltip();
+          const iso=String(d.id).padStart(3,'0');
+          const name=nameMap[iso]||'País';
+          if (iso===SPAIN_ISO) { showSpainMap(); return; }
+          selectCountry(iso, name, false);
+        });
+
+      // Country borders
+      worldG.append('path')
+        .datum(topojson.mesh(world, world.objects.countries, (a,b)=>a!==b))
+        .attr('fill','none').attr('stroke','rgba(255,249,245,0.5)').attr('stroke-width','.3')
+        .attr('d',path);
+    })
+    .catch(()=>{
+      worldG.append('text').attr('x',480).attr('y',250).attr('text-anchor','middle')
+        .attr('fill','#8a6a5a').attr('font-size',14)
+        .text('No se pudo cargar el mapa (requiere conexión a internet)');
+    });
+}
+
+function refreshMapColors() {
+  d3.selectAll('.world-country').attr('class', function() {
+    const iso = d3.select(this).attr('data-iso');
+    if (!iso) return 'world-country';
+    const hasR = restaurants[iso] && restaurants[iso].length>0;
+    const isSpain = iso===SPAIN_ISO;
+    return 'world-country' + (isSpain?' spain-country':hasR?' has-restaurants':' clickable');
+  });
+  d3.selectAll('.spain-province').attr('class', function() {
+    const key = d3.select(this).attr('data-key');
+    const hasR = restaurants[key] && restaurants[key].length>0;
+    const isSel = selectedCountry && selectedCountry.key===key;
+    return 'spain-province'+(hasR?' has-data':'')+(isSel?' selected':'');
+  });
+}
+
+function mapZoomIn() {
+  const svg = currentMapIsSpain() ? d3.select('#spain-svg') : worldSvgEl;
+  const zoom = currentMapIsSpain() ? spainZoom : worldZoom;
+  svg.transition().duration(300).call(zoom.scaleBy, 1.5);
+}
+function mapZoomOut() {
+  const svg = currentMapIsSpain() ? d3.select('#spain-svg') : worldSvgEl;
+  const zoom = currentMapIsSpain() ? spainZoom : worldZoom;
+  svg.transition().duration(300).call(zoom.scaleBy, 0.67);
+}
+function mapReset() {
+  if (currentMapIsSpain()) {
+    d3.select('#spain-svg').transition().duration(400).call(spainZoom.transform, d3.zoomIdentity);
+  } else {
+    worldSvgEl.transition().duration(400).call(worldZoom.transform, d3.zoomIdentity);
+  }
+}
+function currentMapIsSpain() {
+  return document.getElementById('spain-map-wrap').style.display!=='none';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SPAIN MAP — D3 + GeoJSON provinces
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let spainLoaded = false;
+
+function showSpainMap() {
+  document.getElementById('world-map-wrap').style.display='none';
+  document.getElementById('spain-map-wrap').style.display='block';
+  document.getElementById('back-to-world').style.display='inline-block';
+  document.getElementById('map-title').textContent='🇪🇸 España — Selecciona una provincia';
+
+  if (spainLoaded) { refreshMapColors(); return; }
+  spainLoaded = true;
+
+  const width=800, height=600;
+  const svg = d3.select('#spain-svg').attr('viewBox',`0 0 ${width} ${height}`);
+  svg.append('rect').attr('width',width).attr('height',height).attr('fill','#c8dff0').attr('rx',10);
+
+  const g = svg.append('g');
+
+  spainZoom = d3.zoom().scaleExtent([0.8,15]).on('zoom',(e)=>g.attr('transform',e.transform));
+  svg.call(spainZoom);
+
+  const PROVINCE_NAME_MAP = {
+    'A Coruña':'A Coruña','Álava':'Álava','Albacete':'Albacete','Alicante':'Alicante',
+    'Almería':'Almería','Asturias':'Asturias','Ávila':'Ávila','Badajoz':'Badajoz',
+    'Barcelona':'Barcelona','Burgos':'Burgos','Cáceres':'Cáceres','Cádiz':'Cádiz',
+    'Cantabria':'Cantabria','Castellón':'Castellón','Ciudad Real':'Ciudad Real',
+    'Córdoba':'Córdoba','Cuenca':'Cuenca','Girona':'Girona','Granada':'Granada',
+    'Guadalajara':'Guadalajara','Guipúzcoa':'Gipuzkoa','Huelva':'Huelva','Huesca':'Huesca',
+    'Islas Baleares':'Illes Balears','Jaén':'Jaén','La Rioja':'La Rioja',
+    'Las Palmas':'Las Palmas','León':'León','Lleida':'Lleida','Lugo':'Lugo',
+    'Madrid':'Madrid','Málaga':'Málaga','Murcia':'Murcia','Navarra':'Navarra',
+    'Ourense':'Ourense','Palencia':'Palencia','Pontevedra':'Pontevedra',
+    'Salamanca':'Salamanca','Santa Cruz de Tenerife':'Tenerife','Segovia':'Segovia',
+    'Sevilla':'Sevilla','Soria':'Soria','Tarragona':'Tarragona','Teruel':'Teruel',
+    'Toledo':'Toledo','Valencia':'Valencia','Valladolid':'Valladolid',
+    'Vizcaya':'Bizkaia','Zamora':'Zamora','Zaragoza':'Zaragoza','Ceuta':'Ceuta','Melilla':'Melilla',
+  };
+
+  // Try multiple GeoJSON sources for Spain provinces
+  const SOURCES = [
+    'https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/spain-provinces.geojson',
+    'https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@main/public/data/spain-provinces.geojson',
+  ];
+
+  async function tryFetch(urls) {
+    for (const url of urls) {
+      try { const r=await fetch(url); if(r.ok) return await r.json(); } catch {}
+    }
+    return null;
+  }
+
+  tryFetch(SOURCES).then(geo => {
+    if (!geo) {
+      g.append('text').attr('x',400).attr('y',300).attr('text-anchor','middle')
+        .attr('fill','#8a6a5a').attr('font-size',14)
+        .text('No se pudo cargar el mapa de provincias (requiere conexión)');
+      return;
+    }
+
+    const projection = d3.geoMercator().fitSize([width-20, height-20], geo).translate([width/2, height/2]);
+    // Refit properly
+    const proj2 = d3.geoMercator().fitExtent([[10,10],[width-10,height-10]], geo);
+    const pathFn = d3.geoPath().projection(proj2);
+
+    g.selectAll('.spain-province')
+      .data(geo.features)
+      .join('path')
+      .attr('class', d => {
+        const name = d.properties.name || d.properties.NAME || '';
+        const key = 'ESP_' + name.replace(/\s+/g,'_');
+        const hasR = restaurants[key] && restaurants[key].length>0;
+        return 'spain-province'+(hasR?' has-data':'');
+      })
+      .attr('d', pathFn)
+      .attr('data-key', d => {
+        const name = d.properties.name || d.properties.NAME || '';
+        return 'ESP_' + name.replace(/\s+/g,'_');
+      })
+      .attr('data-name', d => d.properties.name || d.properties.NAME || '')
+      .on('mousemove', function(event, d) {
+        const name = d.properties.name || d.properties.NAME || '';
+        const key = 'ESP_' + name.replace(/\s+/g,'_');
+        const count = (restaurants[key]||[]).length;
+        showTooltip(event, name + (count?` (${count} restaurante${count>1?'s':''})`:''));
+      })
+      .on('mouseleave', hideTooltip)
+      .on('click', function(event,d) {
+        hideTooltip();
+        const rawName = d.properties.name || d.properties.NAME || '';
+        const displayName = PROVINCE_NAME_MAP[rawName] || rawName;
+        const key = 'ESP_' + rawName.replace(/\s+/g,'_');
+        d3.selectAll('.spain-province').classed('selected',false);
+        d3.select(this).classed('selected',true);
+        selectCountry(key, displayName, true);
+      });
+
+    // Province name labels
+    g.selectAll('.province-label')
+      .data(geo.features.filter(d=>{
+        const b=pathFn.bounds(d);
+        return (b[1][0]-b[0][0])>15 && (b[1][1]-b[0][1])>10;
+      }))
+      .join('text')
+      .attr('class','province-label')
+      .attr('transform', d=>`translate(${pathFn.centroid(d)})`)
+      .attr('text-anchor','middle')
+      .attr('dominant-baseline','middle')
+      .attr('font-size', d=>{const b=pathFn.bounds(d);const w=b[1][0]-b[0][0];return Math.min(9,Math.max(5,w/10))+'';})
+      .attr('fill','#2d1f18')
+      .attr('pointer-events','none')
+      .attr('font-family','Lato,sans-serif')
+      .text(d=>{
+        const name=d.properties.name||d.properties.NAME||'';
+        const b=pathFn.bounds(d);
+        const w=b[1][0]-b[0][0];
+        return w>30?(name.length>10?name.slice(0,9)+'…':name):'';
+      });
+
+  });
+}
+
+function showWorldView() {
+  document.getElementById('world-map-wrap').style.display='block';
+  document.getElementById('spain-map-wrap').style.display='none';
+  document.getElementById('back-to-world').style.display='none';
+  document.getElementById('map-title').textContent='🌍 Mapa Mundial — clic en un país para ver restaurantes';
+  selectedCountry=null;
+  document.getElementById('restaurants-panel').innerHTML='<div class="panel-placeholder"><div class="icon">🗺️</div>Haz clic en un país o provincia para ver y añadir restaurantes</div>';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RESTAURANTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function selectCountry(key, name, isSpain) {
+  selectedCountry = {key, name, isSpain};
+  renderRestaurantPanel(key, name);
+}
+
+function renderRestaurantPanel(key, name) {
+  const rests = restaurants[key] || [];
+  document.getElementById('restaurants-panel').innerHTML = `
+    <div class="province-panel-header">
+      <h3>📍 ${name}</h3>
+    </div>
+    <div class="add-rest-form">
+      <h4>+ Añadir restaurante</h4>
+      <div class="rest-form-grid">
+        <div class="form-group"><label>Nombre</label><input type="text" id="r-name" placeholder="Nombre del restaurante"></div>
+        <div class="form-group"><label>Tipo de cocina</label><input type="text" id="r-type" placeholder="Italiana, japonesa…"></div>
+        <div class="form-group"><label>Nota Silvia</label><input type="number" id="r-s-score" placeholder="—" min="0" max="10" step="0.5"></div>
+        <div class="form-group"><label>Nota Javier</label><input type="number" id="r-j-score" placeholder="—" min="0" max="10" step="0.5"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:.8rem"><label>Opinión</label><textarea id="r-opinion" placeholder="¿Qué os pareció? Platos favoritos, ambiente…"></textarea></div>
+      <button class="btn-add" id="btn-add-rest" onclick="addRestaurant('${key}','${name}')">Añadir</button>
+    </div>
+    <div id="rest-list">
+      ${rests.length===0
+        ? '<div class="panel-placeholder" style="padding:2rem"><div class="icon">🍽️</div>Todavía no hay restaurantes en ${name} ♡</div>'
+        : rests.map((r,i)=>`
+          <div class="restaurant-card">
+            <button class="delete-btn" onclick="deleteRestaurant('${key}',${i})" title="Eliminar">✕</button>
+            <div class="restaurant-name">${r.name}</div>
+            ${r.cuisine?`<div class="restaurant-type">🍴 ${r.cuisine}</div>`:''}
+            <div class="rest-ratings">
+              ${r.silviaScore!==null&&r.silviaScore!==undefined?`<div class="rating-badge"><span class="rating-name">Silvia</span><span class="rating-score" style="font-size:1.1rem">${r.silviaScore}</span>${renderStars(r.silviaScore)}</div>`:''}
+              ${r.javierScore!==null&&r.javierScore!==undefined?`<div class="rating-badge"><span class="rating-name">Javier</span><span class="rating-score" style="font-size:1.1rem">${r.javierScore}</span>${renderStars(r.javierScore)}</div>`:''}
+            </div>
+            ${r.opinion?`<div class="rest-opinion">${r.opinion}</div>`:''}
+          </div>`).join('')
+      }
+    </div>`;
+}
+
+async function addRestaurant(key, name) {
+  const rname = document.getElementById('r-name').value.trim();
+  if (!rname) { alert('Escribe el nombre del restaurante'); return; }
+  const btn = document.getElementById('btn-add-rest');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Guardando…';
+  const restaurant = {
+    name: rname,
+    cuisine: document.getElementById('r-type').value.trim(),
+    silviaScore: document.getElementById('r-s-score').value!==''?parseFloat(document.getElementById('r-s-score').value):null,
+    javierScore: document.getElementById('r-j-score').value!==''?parseFloat(document.getElementById('r-j-score').value):null,
+    opinion: document.getElementById('r-opinion').value.trim(),
+    date: new Date().toISOString().slice(0,10),
+  };
+  if (!restaurants[key]) restaurants[key]=[];
+  restaurants[key].unshift(restaurant);
+  renderRestaurantPanel(key, name);
+  refreshMapColors();
+  await saveRestaurantToSheets(key, restaurant);
+  btn && (btn.disabled=false, btn.textContent='Añadir');
+}
+
+async function deleteRestaurant(key, idx) {
+  if (!confirm('¿Eliminar este restaurante?')) return;
+  restaurants[key].splice(idx,1);
+  if (restaurants[key].length===0) delete restaurants[key];
+  renderRestaurantPanel(key, selectedCountry.name);
+  refreshMapColors();
+  await deleteRestaurantFromSheets(key, idx);
+}
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  CÓDIGO PARA GOOGLE APPS SCRIPT — versión corregida
+  
+  1. Ve a https://script.google.com → Nuevo proyecto
+  2. Borra todo el contenido y pega EXACTAMENTE lo de abajo
+  3. Guarda (Ctrl+S)
+  4. Despliega → Nueva implementación → Aplicación web
+       Ejecutar como: Yo
+       Quién tiene acceso: Cualquier usuario
+  5. Copia la URL y pégala en SHEETS_URL arriba en el HTML
+═══════════════════════════════════════════════════════════════════════
+
+// ── Helpers ──────────────────────────────────────────────────────────
+// Responde con JSONP si hay ?callback=..., si no devuelve JSON normal.
+// JSONP es el único método que funciona cross-origin con Apps Script.
+function json(obj, callback) {
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(obj) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── IMPORTANTE: pega aquí el ID de tu Google Sheet ──────────────────
+// Lo encuentras en la URL: docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
+var SPREADSHEET_ID = '';   // <-- pega aquí el ID si lo abriste desde script.google.com
+
+function getSheets() {
+  var ss = null;
+  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch(e) {}
+  if (!ss && SPREADSHEET_ID) ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  if (!ss) throw new Error('Vincula el script a tu Sheet: abre el Sheet → Extensiones → Apps Script, o rellena SPREADSHEET_ID arriba.');
+  var movies      = ss.getSheetByName('Peliculas')    || ss.insertSheet('Peliculas');
+  var restaurants = ss.getSheetByName('Restaurantes') || ss.insertSheet('Restaurantes');
+  return { ss: ss, movies: movies, restaurants: restaurants };
+}
+
+// ── Punto de entrada único (GET) ─────────────────────────────────────
+// El navegador siempre llama con GET + query params porque Apps Script
+// no admite POST desde orígenes externos sin OAuth.
+function doGet(e) {
+  const action   = e.parameter.action   || '';
+  const callback = e.parameter.callback || '';  // para JSONP
+  const data     = e.parameter.data ? JSON.parse(e.parameter.data) : {};
+
+  // Envuelve json() para inyectar el callback automáticamente
+  function respond(obj) { return json(obj, callback); }
+
+  try {
+    const { movies, restaurants } = getSheets();
+
+    // ── getAll ────────────────────────────────────────────────────────
+    if (action === 'getAll') {
+      const movRows = movies.getDataRange().getValues();
+      const movList = movRows.slice(1).filter(r => r[0]).map(r => ({
+        id:            String(r[0]),
+        title:         r[1] || '',
+        type:          r[2] || 'Película',
+        silviaScore:   (r[3] !== '' && r[3] !== null && r[3] !== undefined) ? Number(r[3]) : null,
+        javierScore:   (r[4] !== '' && r[4] !== null && r[4] !== undefined) ? Number(r[4]) : null,
+        silviaOpinion: r[5] || '',
+        javierOpinion: r[6] || '',
+        date:          r[7] || '',
+      }));
+
+      const restRows = restaurants.getDataRange().getValues();
+      const restObj  = {};
+      restRows.slice(1).filter(r => r[0]).forEach(r => {
+        const key = r[0];
+        if (!restObj[key]) restObj[key] = [];
+        restObj[key].push({
+          name:        r[1] || '',
+          cuisine:     r[2] || '',
+          silviaScore: r[3] !== '' && r[3] !== null ? Number(r[3]) : null,
+          javierScore: r[4] !== '' && r[4] !== null ? Number(r[4]) : null,
+          opinion:     r[5] || '',
+          date:        r[6] || '',
+        });
+      });
+
+      return respond({ movies: movList, restaurants: restObj });
+    }
+
+    // ── addMovie ──────────────────────────────────────────────────────
+    if (action === 'addMovie') {
+      if (movies.getLastRow() === 0)
+        movies.appendRow(['ID','Título','Tipo','Silvia','Javier','OpiniónSilvia','OpiniónJavier','Fecha']);
+      const id = String(Date.now());
+      movies.appendRow([
+        id,
+        data.title        || '',
+        data.type         || 'Película',
+        data.silviaScore  != null ? data.silviaScore  : '',
+        data.javierScore  != null ? data.javierScore  : '',
+        data.silviaOpinion || '',
+        data.javierOpinion || '',
+        data.date          || '',
+      ]);
+      return respond({ ok: true, id });
+    }
+
+    // ── deleteMovie ───────────────────────────────────────────────────
+    if (action === 'deleteMovie') {
+      const rows = movies.getDataRange().getValues();
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][0]) === String(data.id)) {
+          movies.deleteRow(i + 1);
+          break;
+        }
+      }
+      return respond({ ok: true });
+    }
+
+    // ── addRestaurant ─────────────────────────────────────────────────
+    if (action === 'addRestaurant') {
+      if (restaurants.getLastRow() === 0)
+        restaurants.appendRow(['Clave','Nombre','Cocina','Silvia','Javier','Opinión','Fecha']);
+      const r = data.restaurant || {};
+      restaurants.appendRow([
+        data.key    || '',
+        r.name      || '',
+        r.cuisine   || '',
+        r.silviaScore != null ? r.silviaScore : '',
+        r.javierScore != null ? r.javierScore : '',
+        r.opinion   || '',
+        r.date      || '',
+      ]);
+      return respond({ ok: true });
+    }
+
+    // ── deleteRestaurant ──────────────────────────────────────────────
+    if (action === 'deleteRestaurant') {
+      const rows  = restaurants.getDataRange().getValues();
+      let   count = -1;
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][0]) === String(data.key)) {
+          count++;
+          if (count === Number(data.idx)) {
+            restaurants.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+      return respond({ ok: true });
+    }
+
+    return respond({ error: 'Acción desconocida: ' + action });
+
+  } catch (err) {
+    return respond({ error: err.message });
+  }
+}
+
+// doPost no se usa, pero Apps Script lo requiere para no dar error 405
+function doPost(e) { return doGet(e); }
+-->
+
+</body>
+</html>
